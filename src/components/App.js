@@ -6,7 +6,7 @@ import sampleFishes from "../sample-fishes";
 import Fish from "./Fish";
 import { useParams } from "react-router-dom";
 import { db } from "../base";
-import { doc, setDoc, deleteDoc } from "firebase/firestore"; 
+import { doc, setDoc, deleteDoc, getDoc, onSnapshot } from "firebase/firestore"; 
 
 function App() {
   const [fishes, setFishes] = useState({});
@@ -14,13 +14,59 @@ function App() {
   const { storeId } = useParams();
 
   useEffect(() => {
-    deleteDoc(doc(db, "sparkling-angry-leaves", "fishes"));
+    const localStorageRef = localStorage.getItem(storeId);
+    if(localStorageRef){
+      setOrder(JSON.parse(localStorageRef))
+    }
+    deleteDoc(doc(db, "fierce-drab-loaves", "fishes"));
     setDoc(doc(db, `${storeId}`, "fishes"), fishes);
   }, [fishes]);
 
+  useEffect(() => {
+    const dbRef = doc(db, `${storeId}`, "fishes");
+    console.log("DB REF ", dbRef);
+    // getDoc(dbRef)
+    // .then((doc) => {
+    //   console.log("IZ DBAAA ", doc.data());
+    // })
+    //const dbFishes = {};
+    // console.log("Db fishesssss ", dbFishes);
+    onSnapshot(dbRef, (doc) => {
+      const dbFishes = doc.data();
+      console.log("IZ BAZUUUU ", doc.data());
+      console.log("FISHES BEFORE ", fishes);
+      setFishes(dbFishes);
+      console.log("FISHES AFTER ", fishes);
+    })
+          
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      storeId,
+      JSON.stringify(order)
+    );
+  }, [order]);
+
   const addFish = fish => {
-    setFishes({ ...fishes, fish });
+    const copyFishes = { ...fishes };
+    copyFishes[`fish${Date.now()}`] = fish;
+    setFishes(copyFishes);
   };
+
+  const updateFish = (key, updatedFish) => {
+    const copyFishes = { ...fishes };
+    copyFishes[key] = updatedFish;
+    setFishes(copyFishes)
+  }
+
+  const deleteFish = key => {
+    console.log("Radi Savrseno ", key);
+    const copyFishes = { ...fishes };
+    console.log("Riba koja treba da se obrise je ", copyFishes[key]);
+    // copyFishes[key] = null;
+    // setFishes(copyFishes);
+  }
 
   const loadSampleFishes = () => {
     setFishes(sampleFishes);
@@ -56,7 +102,10 @@ function App() {
       />
       <Inventory 
         addFish={addFish} 
+        updateFish={updateFish}
+        deleteFish={deleteFish}
         loadSampleFishes={loadSampleFishes}
+        fishes={fishes}
       />
     </div>
   );
